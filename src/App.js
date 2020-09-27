@@ -1,18 +1,11 @@
-import React, { useState } from "react";
-import data from "./data.json";
-import { orderBy } from "lodash";
+import React, { useEffect, useState } from "react";
 import { Vega } from "react-vega";
-import ContainerDimensions from "react-container-dimensions";
 
-const spec = {
+const mySpec = {
   height: 300,
-  autosize: {
-    type: "fit",
-    contains: "padding",
-  },
+  width: 1000,
   background: "transparent",
   config: { view: { stroke: "transparent" } },
-  data: { values: orderBy(data, "seeds", "desc") },
   encoding: {
     x: {
       field: "id",
@@ -26,15 +19,14 @@ const spec = {
       },
     },
     y: {
-      field: "seeds",
+      field: "amount",
       type: "quantitative",
-      title: "Seed Count",
+      title: "Count",
       axis: { grid: false },
     },
     tooltip: [
-      { field: "id", type: "ordinal", title: "Plot ID" },
-      { field: "panicles", type: "quantitative", title: "Panicle Count" },
-      { field: "seeds", type: "quantitative", title: "Seed Count" },
+      { field: "id", type: "ordinal", title: "ID" },
+      { field: "amount", type: "quantitative", title: "Count" },
     ],
   },
   layer: [
@@ -45,17 +37,34 @@ const spec = {
           encodings: ["x"],
         },
       },
-      mark: { type: "area", color: "#E8F1CC" },
+      mark: { type: "bar", color: "#C0F1FD" },
     },
     {
       transform: [{ filter: { selection: "brush" } }],
-      mark: { type: "area", color: "#8CBC00" },
+      mark: { type: "bar", color: "#61DBFB" },
     },
   ],
 };
 
 function App() {
   const [selection, setSelection] = useState(null);
+  const [spec, setSpec] = useState(mySpec);
+  const [data, setData] = useState();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch(`./data.json`);
+      const data = await response.json();
+      setData({ values: data });
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    setSpec((s) => {
+      return { ...s, data: data };
+    });
+  }, [data]);
 
   function handleSignals(...args) {
     setSelection(args[1].id);
@@ -64,25 +73,12 @@ function App() {
   const signalListeners = { brush: handleSignals };
 
   return (
-    <div className="App" style={{ width: "100%" }}>
-      <ContainerDimensions>
-        {({ width, height }) => {
-          spec.width = width;
-          return (
-            <Vega
-              spec={spec}
-              actions={false}
-              data={data}
-              signalListeners={signalListeners}
-            />
-          );
-        }}
-      </ContainerDimensions>
-
+    <div className="App">
+      <Vega spec={spec} actions={false} signalListeners={signalListeners} />
       {selection ? (
         selection.map((id) => <div key={id}>{id}</div>)
       ) : (
-        <div>Showing all rows</div>
+        <div>No active selection</div>
       )}
     </div>
   );
