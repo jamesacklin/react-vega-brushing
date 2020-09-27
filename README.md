@@ -8,6 +8,6 @@ Bonus lap for my own use-case:
 
 - Establishes an empty `selection` array
 - Uses `signalListeners` to listen to selection set via brushing, then populate the `selection` array with a list of selected `id`s
-- Reflects the selected `id`s in the UI
+- Reflects the selected `id`s in the UI (for use in indexing or `_.find`-ing elsewhere)
 
 ![Selection-by-brushing interaction example](selection.gif)
