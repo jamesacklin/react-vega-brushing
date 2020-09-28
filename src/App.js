@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Vega } from "react-vega";
+import { VegaLite } from "react-vega";
+import { get } from "lodash";
+import useGlobal from "./store";
 
 const mySpec = {
   height: 300,
-  width: 1000,
+  autosize: {
+    type: "fit",
+    contains: "padding",
+  },
   background: "transparent",
   config: { view: { stroke: "transparent" } },
   encoding: {
@@ -19,14 +24,19 @@ const mySpec = {
       },
     },
     y: {
-      field: "amount",
+      field: "seed_count",
       type: "quantitative",
-      title: "Count",
+      title: "Seed Count",
       axis: { grid: false },
     },
     tooltip: [
-      { field: "id", type: "ordinal", title: "ID" },
-      { field: "amount", type: "quantitative", title: "Count" },
+      { field: "name", type: "ordinal", title: "Plot Name" },
+      {
+        field: "panicle_count",
+        type: "quantitative",
+        title: "Panicle Count",
+      },
+      { field: "seed_count", type: "quantitative", title: "Seed Count" },
     ],
   },
   layer: [
@@ -37,49 +47,48 @@ const mySpec = {
           encodings: ["x"],
         },
       },
-      mark: { type: "bar", color: "#C0F1FD" },
+      mark: { type: "bar", color: "#E8F1CC" },
     },
     {
       transform: [{ filter: { selection: "brush" } }],
-      mark: { type: "bar", color: "#61DBFB" },
+      mark: { type: "bar", color: "#8CBC00" },
     },
   ],
 };
 
 function App() {
-  const [selection, setSelection] = useState(null);
   const [spec, setSpec] = useState(mySpec);
-  const [data, setData] = useState();
+
+  const [scanData, block] = useGlobal(
+    (state) => get(state.scanData, ["clemson-3p", "Sept2020-3p", "field1"]),
+    (actions) => actions.block
+  );
 
   useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch(`./data.json`);
-      const data = await response.json();
-      setData({ values: data });
-    };
-    fetchData();
-  }, []);
+    block.getBlockDataForScan("clemson-3p", "Sept2020-3p", "field1");
+  }, [block]);
 
   useEffect(() => {
-    setSpec((s) => {
-      return { ...s, data: data };
-    });
-  }, [data]);
+    if (scanData !== undefined && scanData.length) {
+      // Copy array by turning our object into a string, then reversing
+      // to create an entirely new data structure. This is the only way
+      // Vega will be happy, since it doesn't support unfrozen data.
+      const thisScanData = JSON.parse(JSON.stringify(scanData));
+      const data = { values: thisScanData };
+      setSpec((s) => {
+        return { ...s, data };
+      });
+    }
+  }, [scanData]);
 
-  function handleSignals(...args) {
-    setSelection(args[1].id);
-  }
-
-  const signalListeners = { brush: handleSignals };
+  useEffect(() => {
+    console.log(spec);
+  }, [spec]);
 
   return (
     <div className="App">
-      <Vega spec={spec} actions={false} signalListeners={signalListeners} />
-      {selection ? (
-        selection.map((id) => <div key={id}>{id}</div>)
-      ) : (
-        <div>No active selection</div>
-      )}
+      <VegaLite spec={spec} actions={false} />
+      <pre>{JSON.stringify(spec, null, 2)}</pre>
     </div>
   );
 }
