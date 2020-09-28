@@ -73,8 +73,17 @@ function App() {
       // Copy array by turning our object into a string, then reversing
       // to create an entirely new data structure. This is the only way
       // Vega will be happy, since it doesn't support unfrozen data.
+      // TODO: figure out the correct immer.js application here.
       const thisScanData = JSON.parse(JSON.stringify(scanData));
-      const data = { values: thisScanData };
+      const data = {
+        values: thisScanData,
+        format: {
+          parse: {
+            seed_count: "number",
+            panicle_count: "number",
+          },
+        },
+      };
       setSpec((s) => {
         return { ...s, data };
       });
@@ -88,7 +97,6 @@ function App() {
   return (
     <div className="App">
       <VegaLite spec={spec} actions={false} />
-      <pre>{JSON.stringify(spec, null, 2)}</pre>
     </div>
   );
 }
